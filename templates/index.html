@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Data Decoder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .error {
+            color: red;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Data Decoder</h1>
+    <form method="post">
+        <label for="encoded_data">Encoded Data:</label><br>
+        <input type="text" id="encoded_data" name="encoded_data"><br><br>
+        <input type="submit" value="Decode">
+    </form>
+    {% if decoded_data %}
+    <h2>Decoded Data:</h2>
+    <pre id="formattedXml"></pre>
+    {% endif %}
+    {% if error %}
+    <h2 class="error">Error:</h2>
+    <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <script>
+        function formatXml(xmlString) {
+            var parser = new DOMParser();
+            var xmlDoc = parser.parseFromString(xmlString, "application/xml");
+            var xsltDoc = new DOMParser().parseFromString([
+                '<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform">',
+                '  <xsl:strip-space elements="*"/>',
+                '  <xsl:output indent="yes"/>',
+                '  <xsl:template match="node()|@*">',
+                '    <xsl:copy><xsl:apply-templates select="node()|@*"/></xsl:copy>',
+                '  </xsl:template>',
+                '</xsl:stylesheet>',
+            ].join('\n'), 'application/xml');
+
+            var xsltProcessor = new XSLTProcessor();
+            xsltProcessor.importStylesheet(xsltDoc);
+            var resultDoc = xsltProcessor.transformToDocument(xmlDoc);
+            var serializer = new XMLSerializer();
+            return serializer.serializeToString(resultDoc);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            {% if decoded_data %}
+            var xmlData = `{{ decoded_data | safe }}`;
+            var formattedXml = formatXml(xmlData);
+            document.getElementById('formattedXml').textContent = formattedXml;
+            {% endif %}
+        });
+    </script>
+
+</body>
+
+</html>
